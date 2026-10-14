@@ -1,0 +1,281 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Delete Food | SUZAN'S FOOD CORNER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .delete-card {
+            max-width: 650px;
+            margin: 0 auto;
+            padding: 28px;
+            background: white;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #542b24;
+        }
+
+        .form-group select { width: 100%; }
+
+        .food-info {
+            margin: 22px 0;
+            padding: 18px;
+            background: #fff7f1;
+            border-radius: 12px;
+            line-height: 1.8;
+        }
+
+        .food-info h3 {
+            color: #542b24;
+            margin-bottom: 10px;
+        }
+
+        .form-message {
+            margin-top: 16px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .form-message.success {
+            display: block;
+            background: #d9f6e5;
+            color: #17683b;
+        }
+
+        .form-message.error {
+            display: block;
+            background: #ffe1df;
+            color: #a12620;
+        }
+
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="index.html" class="logo">SUZAN'S <span>FOOD CORNER.</span></a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="list.html">Food Menu</a>
+        <a href="listOne.html">Search Food</a>
+        <a href="insert.html">Add Food</a>
+        <a href="update.html">Update</a>
+        <a href="delete.html" class="active">Delete</a>
+    </div>
+</nav>
+
+<main class="container">
+
+    <section class="page-heading">
+        <p class="eyebrow">FOOD MANAGEMENT</p>
+        <h1>🗑️ Delete Food Item</h1>
+        <p>Choose an item and remove it from your food menu.</p>
+    </section>
+
+    <div class="delete-card">
+
+        <div class="form-group">
+            <label for="foodSelect">Select Food Item</label>
+            <select id="foodSelect">
+                <option value="">Loading food items...</option>
+            </select>
+        </div>
+
+        <div id="foodInfo" class="food-info" hidden></div>
+
+        <button type="button" id="deleteButton"
+                class="btn btn-danger" disabled>
+            Delete Food Item
+        </button>
+
+        <p id="message" class="form-message" role="status"></p>
+
+    </div>
+
+    <div class="button-row" style="justify-content:center; margin-top:25px;">
+        <a href="list.html" class="btn btn-secondary">← Back to Menu</a>
+    </div>
+
+</main>
+
+<footer class="footer">
+    <p>Made with ♥ for food lovers</p>
+    <p>SUZAN'S FOOD CORNER — Food Ordering System</p>
+</footer>
+
+<script>
+const foodSelect = document.getElementById("foodSelect");
+const foodInfo = document.getElementById("foodInfo");
+const deleteButton = document.getElementById("deleteButton");
+const message = document.getElementById("message");
+
+function showMessage(text, type = "success") {
+    message.textContent = text;
+    message.className = `form-message ${type}`;
+}
+
+async function readResponse(response) {
+    const text = await response.text();
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { message: text };
+    }
+}
+
+async function loadFoods(selectedId = "") {
+    try {
+        const response = await fetch("/foods");
+
+        if (!response.ok) {
+            throw new Error("Could not load the food list.");
+        }
+
+        const foods = await response.json();
+
+        if (!Array.isArray(foods)) {
+            throw new Error("The server did not return a food list.");
+        }
+
+        foodSelect.innerHTML =
+            '<option value="">-- Choose Food --</option>';
+
+        foods.forEach(food => {
+            const option = document.createElement("option");
+            option.value = food.Food_id;
+            option.textContent =
+                `${food.Food_id} - ${String(food.Food_name).trim()}`;
+            foodSelect.appendChild(option);
+        });
+
+        if (selectedId &&
+            [...foodSelect.options].some(option => option.value === String(selectedId))) {
+            foodSelect.value = String(selectedId);
+            await loadSelectedFood();
+        }
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+async function loadSelectedFood() {
+    const id = foodSelect.value;
+
+    foodInfo.hidden = true;
+    foodInfo.replaceChildren();
+    deleteButton.disabled = true;
+    message.className = "form-message";
+    message.textContent = "";
+
+    if (!id) return;
+
+    try {
+        const response = await fetch(`/foods/${encodeURIComponent(id)}`);
+        const result = await readResponse(response);
+
+        if (!response.ok) {
+            throw new Error(result.error || result.message || "Food item not found.");
+        }
+
+        const food = Array.isArray(result) ? result[0] : result;
+
+        if (!food || !food.Food_id) {
+            throw new Error("Food details were not returned.");
+        }
+
+        const heading = document.createElement("h3");
+        heading.textContent = String(food.Food_name ?? "").trim();
+
+        const fields = [
+            ["Food_id", food.Food_id],
+            ["Category", food.Category],
+            ["Price", "₹" + food.Price],
+            ["Description", food.Description],
+            ["Availability", food.Availability === "Yes" ? "Available" : "Unavailable"]
+        ];
+
+        foodInfo.replaceChildren(heading);
+
+        fields.forEach(([label, value]) => {
+            const paragraph = document.createElement("p");
+            paragraph.textContent = `${label}: ${value ?? ""}`;
+            foodInfo.appendChild(paragraph);
+        });
+
+        foodInfo.hidden = false;
+        deleteButton.disabled = false;
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    }
+}
+
+foodSelect.addEventListener("change", loadSelectedFood);
+
+deleteButton.addEventListener("click", async function() {
+    const id = foodSelect.value;
+
+    if (!id) {
+        showMessage("Please select a food item.", "error");
+        return;
+    }
+
+    const selectedName =
+        foodSelect.options[foodSelect.selectedIndex].textContent;
+
+    if (!confirm(`Are you sure you want to delete ${selectedName}?`)) {
+        return;
+    }
+
+    deleteButton.disabled = true;
+    deleteButton.textContent = "Deleting...";
+
+    try {
+        const response = await fetch(`/foods/${encodeURIComponent(id)}`, {
+            method: "DELETE"
+        });
+
+        const result = await readResponse(response);
+
+        if (!response.ok) {
+            throw new Error(result.error || result.message || "Could not delete food.");
+        }
+
+        foodInfo.hidden = true;
+        foodInfo.replaceChildren();
+        await loadFoods();
+
+        showMessage("Food item deleted successfully!");
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    } finally {
+        deleteButton.textContent = "Delete Food Item";
+        deleteButton.disabled = !foodSelect.value;
+    }
+});
+
+async function initialisePage() {
+    const params = new URLSearchParams(window.location.search);
+    await loadFoods(params.get("id") || "");
+}
+
+initialisePage();
+</script>
+
+</body>
+</html>

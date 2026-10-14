@@ -1,0 +1,223 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Food | SUZAN'S FOOD CORNER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .form-card {
+            max-width: 650px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+        }
+
+        .form-card input,
+        .form-card select,
+        .form-card textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-group { margin-bottom: 20px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #542b24;
+        }
+
+        .form-message {
+            margin-top: 18px;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .form-message.success {
+            display: block;
+            background: #d9f6e5;
+            color: #17683b;
+        }
+
+        .form-message.error {
+            display: block;
+            background: #ffe1df;
+            color: #a12620;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="index.html" class="logo">SUZAN'S <span>FOOD CORNER.</span></a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="list.html">Food Menu</a>
+        <a href="listOne.html">Search Food</a>
+        <a href="insert.html" class="active">Add Food</a>
+        <a href="update.html">Update</a>
+        <a href="delete.html">Delete</a>
+    </div>
+</nav>
+
+<main class="container">
+
+    <section class="page-heading">
+        <p class="eyebrow">FOOD MANAGEMENT</p>
+        <h1>➕ Add New Food</h1>
+        <p>Enter the details to add a new item to your database.</p>
+    </section>
+
+    <form id="foodForm" class="form-card">
+
+        
+        <div class="form-group">
+            <label for="Food_id">Food ID</label>
+            <input type="number" id="Food_id" value="" readonly>
+            <small class="form-note">Food ID is generated automatically by the database.</small>
+        </div>
+
+        <div class="form-group">
+            <label for="Food_name">Food Name</label>
+            <input type="text" id="Food_name" name="Food_name"
+                   placeholder="Example: Chicken Biryani"
+                   maxlength="100" required>
+        </div>
+
+        <div class="form-group">
+            <label for="Category">Food Category</label>
+            <select id="Category" name="Category" required>
+                <option value="">Select category</option>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non Vegetarian">Non Vegetarian</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="Price">Price (₹)</label>
+            <input type="number" id="Price" name="Price"
+                   placeholder="Enter price"
+                   min="0" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+            <label for="Description">Food Description</label>
+            <textarea id="Description" name="Description"
+                      placeholder="Describe the food item..."
+                      rows="4" maxlength="500" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="Availability">Availability</label>
+            <select id="Availability" name="Availability" required>
+                <option value="">Select availability</option>
+                <option value="Yes">Available</option>
+                <option value="No">Not Available</option>
+            </select>
+        </div>
+
+        <div class="button-row">
+            <button id="submitButton" type="submit" class="btn">
+                Add Food Item
+            </button>
+            <button type="reset" class="btn btn-secondary">
+                Clear Form
+            </button>
+        </div>
+
+        <p id="message" class="form-message" role="status"></p>
+
+    </form>
+</main>
+
+<footer class="footer">
+    <p>Made with ♥ for food lovers</p>
+    <p>SUZAN'S FOOD CORNER — Food Ordering System</p>
+</footer>
+
+<script>
+const foodForm = document.getElementById("foodForm");
+const message = document.getElementById("message");
+const submitButton = document.getElementById("submitButton");
+
+foodForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    message.className = "form-message";
+    message.textContent = "";
+
+    const food = {
+        Food_name: document.getElementById("Food_name").value.trim(),
+        Category: document.getElementById("Category").value,
+        Price: Number(document.getElementById("Price").value),
+        Description: document.getElementById("Description").value.trim(),
+        Availability: document.getElementById("Availability").value
+    };
+
+    if (
+        !food.Food_name ||
+        !food.Category ||
+        !food.Description ||
+        document.getElementById("Price").value.trim() === "" ||
+        !Number.isFinite(food.Price) ||
+        food.Price < 0 ||
+        !food.Availability
+    ) {
+        message.className = "form-message error";
+        message.textContent = "Please enter all details correctly.";
+        return;
+    }
+
+    submitButton.disabled = true;
+    submitButton.textContent = "Adding...";
+
+    try {
+        const response = await fetch("/foods", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(food)
+        });
+
+        const responseText = await response.text();
+        let result = {};
+
+        try {
+            result = JSON.parse(responseText);
+        } catch {
+            result = { message: responseText };
+        }
+
+        if (!response.ok) {
+            throw new Error(
+                result.error || result.message || "Could not add food."
+            );
+        }
+
+        foodForm.reset();
+        message.className = "form-message success";
+        message.textContent =
+            "Food added successfully! Opening the menu...";
+
+        setTimeout(() => {
+            window.location.href = "list.html";
+        }, 1200);
+
+    } catch (error) {
+        message.className = "form-message error";
+        message.textContent =
+            error.message || "Something went wrong. Check the server.";
+    } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = "Add Food Item";
+    }
+});
+</script>
+
+</body>
+</html>

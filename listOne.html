@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Search Food | SUZAN'S FOOD CORNER</title>
+    <link rel="stylesheet" href="style.css">
+
+    <style>
+        .search-card {
+            max-width: 750px;
+            margin: 0 auto;
+            padding: 25px;
+            background: white;
+            border: 1px solid #eadbd0;
+            border-radius: 16px;
+            box-shadow: 0 8px 25px rgba(76,43,25,.08);
+        }
+
+        .search-row {
+            display: flex;
+            align-items: end;
+            gap: 12px;
+        }
+
+        .search-row .form-group {
+            flex: 1;
+            margin-bottom: 0;
+        }
+
+        .details-image {
+            width: 100%;
+            max-width: 400px;
+            height: 250px;
+            object-fit: cover;
+            border-radius: 14px;
+            margin: 25px auto 10px;
+        }
+
+        .details-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        .details-table td {
+            padding: 12px;
+            border-bottom: 1px solid #eee0da;
+            overflow-wrap: anywhere;
+        }
+
+        .details-table td:first-child {
+            width: 38%;
+            font-weight: bold;
+            color: #87351f;
+        }
+
+        .center {
+            text-align: center;
+        }
+
+        .search-message {
+            margin-top: 18px;
+            color: #78665d;
+            text-align: center;
+        }
+
+        @media (max-width: 500px) {
+            .search-row {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .search-card {
+                padding: 17px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+<nav class="navbar">
+    <a href="index.html" class="logo">SUZAN'S <span>FOOD CORNER.</span></a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="list.html">Food Menu</a>
+        <a href="listOne.html" class="active">Search Food</a>
+        <a href="insert.html">Add Food</a>
+        <a href="update.html">Update</a>
+        <a href="delete.html">Delete</a>
+    </div>
+</nav>
+
+<main class="container">
+    <section class="page-heading">
+        <p class="eyebrow">FIND YOUR FAVOURITE</p>
+        <h1>Search Food</h1>
+        <p>Enter a Food ID to view all its details.</p>
+    </section>
+
+    <section class="search-card">
+        <form id="searchForm">
+            <div class="search-row">
+                <div class="form-group">
+                    <label for="foodId">Food ID</label>
+                    <input
+                        type="number"
+                        id="foodId"
+                        min="1"
+                        step="1"
+                        placeholder="Enter Food ID, e.g. 1"
+                        required
+                    >
+                </div>
+                <button type="submit" class="btn">Search Food</button>
+            </div>
+        </form>
+
+        <p id="searchMessage" class="search-message">
+            Enter a Food ID and click Search Food.
+        </p>
+
+        <div id="foodDetails"></div>
+    </section>
+
+    <div class="button-row" style="justify-content:center">
+        <a href="list.html" class="btn btn-secondary">← Back to Menu</a>
+    </div>
+</main>
+
+<footer class="footer">
+    <p>Made with ♥ for food lovers</p>
+    <p>SUZAN'S FOOD CORNER — Food Ordering System</p>
+</footer>
+
+<script>
+const form = document.getElementById("searchForm");
+const foodIdInput = document.getElementById("foodId");
+const foodDetails = document.getElementById("foodDetails");
+const searchMessage = document.getElementById("searchMessage");
+
+const foodImages = {
+    "Chicken Biryani": "images/chicken-biryani.jpg",
+    "Veg Biryani": "images/veg-biryani.jpg",
+    "Paneer Pizza": "images/paneer-pizza.jpg",
+    "Chicken Wings": "images/chicken-wings.jpg",
+    "French Fries": "images/french-fries.jpg",
+    "Fish Curry": "images/fish-curry.jpg",
+    "Gongura Mutton": "images/gongura-mutton.jpg",
+    "Masala Dosa": "images/masala-dosa.jpg",
+    "Butter Naan": "images/butter-naan.jpg",
+    "Rumali Roti": "images/rumali-roti.jpg",
+    "Chicken 65": "images/chicken-65.jpg",
+    "Egg Fried Rice": "images/egg-fried-rice.jpg"
+};
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+async function searchFood(id) {
+    searchMessage.textContent = "Searching...";
+    foodDetails.innerHTML = "";
+
+    try {
+        const response = await fetch(`/foods/${encodeURIComponent(id)}`);
+        const result = await response.json();
+
+        if (!response.ok) {
+            throw new Error(result.message || result.error || "Food item not found.");
+        }
+
+        const food = Array.isArray(result) ? result[0] : result;
+
+        if (!food || !food.Food_name) {
+            throw new Error("Food item not found.");
+        }
+
+        const name = String(food.Food_name).trim();
+        const imagePath = foodImages[name];
+        const available = String(food.Availability).toLowerCase() === "yes";
+
+        foodDetails.innerHTML = `
+            <div class="center">
+                ${imagePath ? `
+                    <img class="details-image"
+                         src="${imagePath}"
+                         alt="${escapeHTML(name)}"
+                         onerror="this.style.display='none'">
+                ` : ""}
+
+                <h2>${escapeHTML(name)}</h2>
+                <p class="food-price">₹${escapeHTML(food.Price)}</p>
+            </div>
+
+            <div class="table-wrap">
+                <table class="details-table">
+                    <tr>
+                        <td>Food ID</td>
+                        <td>${escapeHTML(food.Food_id)}</td>
+                    </tr>
+                    <tr>
+                        <td>Food Name</td>
+                        <td>${escapeHTML(name)}</td>
+                    </tr>
+                    <tr>
+                        <td>Category</td>
+                        <td>${escapeHTML(food.Category)}</td>
+                    </tr>
+                    <tr>
+                        <td>Price</td>
+                        <td>₹${escapeHTML(food.Price)}</td>
+                    </tr>
+                    <tr>
+                        <td>Description</td>
+                        <td>${escapeHTML(food.Description)}</td>
+                    </tr>
+                    <tr>
+                        <td>Availability</td>
+                        <td>
+                            <span class="availability ${
+                                available ? "available" : "unavailable"
+                            }">
+                                ${available ? "Yes - Available" : "No - Unavailable"}
+                            </span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="button-row" style="justify-content:center">
+                <a class="btn"
+                   href="update.html?id=${encodeURIComponent(food.Food_id)}">
+                   Update Food
+                </a>
+                <a class="btn btn-danger"
+                   href="delete.html?id=${encodeURIComponent(food.Food_id)}">
+                   Delete Food
+                </a>
+            </div>
+        `;
+
+        searchMessage.textContent = "Food item found successfully!";
+
+        const url = new URL(window.location.href);
+        url.searchParams.set("id", food.Food_id);
+        window.history.replaceState({}, "", url);
+
+    } catch (error) {
+        searchMessage.textContent = error.message;
+        foodDetails.innerHTML = "";
+    }
+}
+
+form.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    const id = foodIdInput.value.trim();
+
+    if (!id || !/^[1-9]\d*$/.test(id)) {
+        searchMessage.textContent = "Please enter a valid Food ID.";
+        foodDetails.innerHTML = "";
+        return;
+    }
+
+    searchFood(id);
+});
+
+// Also support opening this page from a food-menu View link.
+const initialId = new URLSearchParams(window.location.search).get("id");
+
+if (initialId && /^[1-9]\d*$/.test(initialId)) {
+    foodIdInput.value = initialId;
+    searchFood(initialId);
+}
+</script>
+</body>
+</html>

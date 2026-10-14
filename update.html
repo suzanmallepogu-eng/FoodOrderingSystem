@@ -1,0 +1,328 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Food | SUZAN'S FOOD CORNER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .form-card {
+            max-width: 650px;
+            margin: 20px auto;
+            background: white;
+            padding: 28px;
+            border-radius: 18px;
+            box-shadow: 0 8px 30px rgba(0,0,0,0.07);
+        }
+
+        .form-group { margin-bottom: 18px; }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #542b24;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .form-message {
+            max-width: 650px;
+            margin: 15px auto;
+            padding: 12px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .form-message.success {
+            display: block;
+            background: #d9f6e5;
+            color: #17683b;
+        }
+
+        .form-message.error {
+            display: block;
+            background: #ffe1df;
+            color: #a12620;
+        }
+
+        [hidden] { display: none !important; }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="index.html" class="logo">SUZAN'S <span>FOOD CORNER.</span></a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="list.html">Food Menu</a>
+        <a href="listOne.html">Search Food</a>
+        <a href="insert.html">Add Food</a>
+        <a href="update.html" class="active">Update</a>
+        <a href="delete.html">Delete</a>
+    </div>
+</nav>
+
+<main class="container">
+
+    <section class="page-heading">
+        <p class="eyebrow">FOOD MANAGEMENT</p>
+        <h1>✏️ Update Food Details</h1>
+        <p>Select a food item, edit its information, and save your changes.</p>
+    </section>
+
+    <div class="form-card">
+        <div class="form-group">
+            <label for="foodSelect">Select Food Item</label>
+            <select id="foodSelect" required>
+                <option value="">Loading food items...</option>
+            </select>
+        </div>
+
+        <button type="button" id="loadButton" class="btn">
+            Load Food Details
+        </button>
+    </div>
+
+    <form id="updateForm" class="form-card" hidden>
+
+        <div class="form-group">
+            <label for="Food_id">Food_id</label>
+            <input type="text" id="Food_id" readonly>
+        </div>
+
+        <div class="form-group">
+            <label for="Food_name">Food_name</label>
+            <input type="text" id="Food_name" maxlength="100" required>
+        </div>
+
+        <div class="form-group">
+            <label for="Category">Category</label>
+            <select id="Category" required>
+                <option value="Vegetarian">Vegetarian</option>
+                <option value="Non Vegetarian">Non Vegetarian</option>
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="Price">Price (₹)</label>
+            <input type="number" id="Price" min="0" step="0.01" required>
+        </div>
+
+        <div class="form-group">
+            <label for="Description">Description</label>
+            <textarea id="Description" rows="4" maxlength="500" required></textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="Availability">Availability</label>
+            <select id="Availability" required>
+                <option value="Yes">Available</option>
+                <option value="No">Not Available</option>
+            </select>
+        </div>
+
+        <div class="button-row">
+            <button type="submit" id="saveButton" class="btn">
+                Save Changes
+            </button>
+            <button type="button" id="clearButton" class="btn btn-secondary">
+                Cancel Editing
+            </button>
+        </div>
+    </form>
+
+    <p id="message" class="form-message" role="status"></p>
+
+    <div class="button-row" style="justify-content:center; margin-top:20px;">
+        <a href="list.html" class="btn btn-secondary">← Back to Menu</a>
+    </div>
+
+</main>
+
+<footer class="footer">
+    <p>Made with ♥ for food lovers</p>
+    <p>SUZAN'S FOOD CORNER — Food Ordering System</p>
+</footer>
+
+<script>
+const foodSelect = document.getElementById("foodSelect");
+const updateForm = document.getElementById("updateForm");
+const message = document.getElementById("message");
+const saveButton = document.getElementById("saveButton");
+
+function showMessage(text, type = "success") {
+    message.textContent = text;
+    message.className = `form-message ${type}`;
+}
+
+async function readResponse(response) {
+    const text = await response.text();
+
+    try {
+        return JSON.parse(text);
+    } catch {
+        return { message: text };
+    }
+}
+
+async function loadFoodOptions(selectedId = "") {
+    try {
+        const response = await fetch("/foods");
+
+        if (!response.ok) {
+            throw new Error("Could not load food list.");
+        }
+
+        const foods = await response.json();
+
+        if (!Array.isArray(foods)) {
+            throw new Error("The server did not return a food list.");
+        }
+
+        foodSelect.innerHTML =
+            '<option value="">-- Choose Food --</option>';
+
+        foods.forEach(food => {
+            const option = document.createElement("option");
+            option.value = food.Food_id;
+            option.textContent =
+                `${food.Food_id} - ${String(food.Food_name).trim()}`;
+            foodSelect.appendChild(option);
+        });
+
+        if (selectedId &&
+            [...foodSelect.options].some(option => option.value === String(selectedId))) {
+            foodSelect.value = String(selectedId);
+        }
+
+        return true;
+    } catch (error) {
+        showMessage(error.message, "error");
+        return false;
+    }
+}
+
+async function loadSelectedFood() {
+    const id = foodSelect.value;
+
+    if (!id) {
+        showMessage("Please select a food item first.", "error");
+        updateForm.hidden = true;
+        return;
+    }
+
+    try {
+        const response = await fetch(`/foods/${encodeURIComponent(id)}`);
+        const result = await readResponse(response);
+
+        if (!response.ok) {
+            throw new Error(result.error || result.message || "Food item not found.");
+        }
+
+        const food = Array.isArray(result) ? result[0] : result;
+
+        if (!food || !food.Food_id) {
+            throw new Error("Food details were not returned by the server.");
+        }
+
+        document.getElementById("Food_id").value = food.Food_id;
+        document.getElementById("Food_name").value = String(food.Food_name ?? "").trim();
+        document.getElementById("Category").value = food.Category;
+        document.getElementById("Price").value = food.Price;
+        document.getElementById("Description").value = food.Description;
+        document.getElementById("Availability").value = food.Availability;
+
+        updateForm.hidden = false;
+        showMessage("Food details loaded. You can edit them now.");
+    } catch (error) {
+        updateForm.hidden = true;
+        showMessage(error.message, "error");
+    }
+}
+
+document.getElementById("loadButton").addEventListener("click", loadSelectedFood);
+
+updateForm.addEventListener("submit", async function(event) {
+    event.preventDefault();
+
+    const id = document.getElementById("Food_id").value;
+
+    const food = {
+        Food_name: document.getElementById("Food_name").value.trim(),
+        Category: document.getElementById("Category").value,
+        Price: Number(document.getElementById("Price").value),
+        Description: document.getElementById("Description").value.trim(),
+        Availability: document.getElementById("Availability").value
+    };
+
+    if (
+        !id ||
+        !food.Food_name ||
+        !food.Category ||
+        !food.Description ||
+        document.getElementById("Price").value.trim() === "" ||
+        !Number.isFinite(food.Price) ||
+        food.Price < 0 ||
+        !food.Availability
+    ) {
+        showMessage("Please enter all food details correctly.", "error");
+        return;
+    }
+
+    saveButton.disabled = true;
+    saveButton.textContent = "Saving...";
+
+    try {
+        const response = await fetch(`/foods/${encodeURIComponent(id)}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(food)
+        });
+
+        const result = await readResponse(response);
+
+        if (!response.ok) {
+            throw new Error(result.error || result.message || "Update failed.");
+        }
+
+        await loadFoodOptions(id);
+        await loadSelectedFood();
+        showMessage("Food details updated successfully!");
+
+    } catch (error) {
+        showMessage(error.message, "error");
+    } finally {
+        saveButton.disabled = false;
+        saveButton.textContent = "Save Changes";
+    }
+});
+
+document.getElementById("clearButton").addEventListener("click", function() {
+    updateForm.reset();
+    updateForm.hidden = true;
+    message.className = "form-message";
+    message.textContent = "";
+});
+
+async function initialisePage() {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get("id");
+    const loaded = await loadFoodOptions(id || "");
+
+    if (loaded && id && foodSelect.value === id) {
+        await loadSelectedFood();
+    }
+}
+
+initialisePage();
+</script>
+
+</body>
+</html>

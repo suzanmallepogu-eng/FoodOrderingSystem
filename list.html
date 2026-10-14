@@ -1,0 +1,330 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Food Menu | SUZAN'S FOOD CORNER</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .menu-panel {
+            background: white;
+            padding: 22px;
+            border-radius: 16px;
+            box-shadow: 0 5px 24px rgba(0,0,0,0.07);
+            margin-top: 25px;
+        }
+
+        .table-wrap { overflow-x: auto; }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 850px;
+        }
+
+        th {
+            background: #542b24;
+            color: white;
+            padding: 14px;
+            text-align: left;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #eee0da;
+        }
+
+        tbody tr:hover { background: #fff7f1; }
+
+        .dish-photo {
+            width: 58px;
+            height: 48px;
+            object-fit: cover;
+            border-radius: 8px;
+        }
+
+        .status {
+            padding: 5px 9px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .yes { background: #d9f6e5; color: #17683b; }
+        .no { background: #ffe1df; color: #a12620; }
+
+        .action-link {
+            display: inline-block;
+            margin: 3px;
+            padding: 7px 10px;
+            border-radius: 6px;
+            text-decoration: none;
+            background: #f2e6dc;
+            color: #542b24;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        .delete-link { background: #ffe1df; color: #a12620; }
+
+        .menu-toolbar {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            align-items: end;
+            margin-bottom: 18px;
+        }
+
+        .menu-toolbar .filter-group {
+            flex: 1;
+            min-width: 180px;
+        }
+
+        .menu-toolbar input,
+        .menu-toolbar select { width: 100%; }
+
+        .table-message {
+            padding: 25px;
+            text-align: center;
+        }
+
+        .menu-title {
+            color: #542b24;
+            font-size: 30px;
+            margin-bottom: 8px;
+        }
+    </style>
+</head>
+<body>
+
+<nav class="navbar">
+    <a href="index.html" class="logo">SUZAN'S <span>FOOD CORNER.</span></a>
+    <div class="nav-links">
+        <a href="index.html">Home</a>
+        <a href="list.html" class="active">Food Menu</a>
+        <a href="listOne.html">Search Food</a>
+        <a href="insert.html">Add Food</a>
+        <a href="update.html">Update</a>
+        <a href="delete.html">Delete</a>
+    </div>
+</nav>
+
+<main class="container">
+
+    <section class="page-heading">
+        <p class="eyebrow">FRESH · TASTY · DELICIOUS</p>
+        <h1 class="menu-title">SUZAN'S FOOD CORNER</h1>
+        <p>View and manage all food items stored in the database.</p>
+    </section>
+
+    <div class="menu-panel">
+
+        <div class="menu-toolbar">
+            <div class="filter-group">
+                <label for="searchFood">Search by ID or Food Name</label>
+                <input id="searchFood" type="text"
+                       placeholder="Enter food ID or name...">
+            </div>
+
+            <div class="filter-group">
+                <label for="categoryFilter">Category</label>
+                <select id="categoryFilter">
+                    <option value="All">All Categories</option>
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Non Vegetarian">Non Vegetarian</option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="availabilityFilter">Availability</label>
+                <select id="availabilityFilter">
+                    <option value="All">All Items</option>
+                    <option value="Yes">Available</option>
+                    <option value="No">Unavailable</option>
+                </select>
+            </div>
+
+            <a href="insert.html" class="btn">+ Add Food</a>
+        </div>
+
+        <p id="foodCount">Loading food items...</p>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Image</th>
+                        <th>Food_id</th>
+                        <th>Food_name</th>
+                        <th>Category</th>
+                        <th>Price</th>
+                        <th>Description</th>
+                        <th>Availability</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="foodTable">
+                    <tr>
+                        <td colspan="8" class="table-message">
+                            Loading food items...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <p id="errorMessage" class="table-message"></p>
+    </div>
+
+</main>
+
+<footer class="footer">
+    <p>Made with ♥ for food lovers</p>
+    <p>SUZAN'S FOOD CORNER — Food Ordering System</p>
+</footer>
+
+<script>
+const foodTable = document.getElementById("foodTable");
+const searchFood = document.getElementById("searchFood");
+const categoryFilter = document.getElementById("categoryFilter");
+const availabilityFilter = document.getElementById("availabilityFilter");
+const foodCount = document.getElementById("foodCount");
+const errorMessage = document.getElementById("errorMessage");
+
+let foods = [];
+
+const foodImages = {
+    "Chicken Biryani": "images/chicken-biryani.jpg",
+    "Veg Biryani": "images/veg-biryani.jpg",
+    "Paneer Pizza": "images/paneer-pizza.jpg",
+    "Chicken Wings": "images/chicken-wings.jpg",
+    "French Fries": "images/french-fries.jpg",
+    "Fish Curry": "images/fish-curry.jpg",
+    "Gongura Mutton": "images/gongura-mutton.jpg",
+    "Masala Dosa": "images/masala-dosa.jpg",
+    "Butter Naan": "images/butter-naan.jpg",
+    "Rumali Roti": "images/rumali-roti.jpg",
+    "Chicken 65": "images/chicken-65.jpg",
+    "Egg Fried Rice": "images/egg-fried-rice.jpg"
+};
+
+function escapeHTML(value) {
+    return String(value ?? "").replace(/[&<>"']/g, character => ({
+        "&": "&amp;",
+        "<": "&lt;",
+        ">": "&gt;",
+        '"': "&quot;",
+        "'": "&#39;"
+    })[character]);
+}
+
+function renderFoods() {
+    const search = searchFood.value.trim().toLowerCase();
+    const category = categoryFilter.value;
+    const availability = availabilityFilter.value;
+
+    const filteredFoods = foods.filter(food => {
+        const name = String(food.Food_name ?? "");
+        const id = String(food.Food_id ?? "");
+
+        return (
+            (name.toLowerCase().includes(search) ||
+             id.toLowerCase().includes(search)) &&
+            (category === "All" || food.Category === category) &&
+            (availability === "All" ||
+             food.Availability === availability)
+        );
+    });
+
+    foodCount.textContent =
+        `${filteredFoods.length} food item(s) found`;
+
+    if (filteredFoods.length === 0) {
+        foodTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="table-message">
+                    No matching food items found.
+                </td>
+            </tr>`;
+        return;
+    }
+
+    foodTable.innerHTML = filteredFoods.map(food => {
+        const name = String(food.Food_name ?? "").trim();
+        const image = foodImages[name];
+        const available = food.Availability === "Yes";
+        const id = encodeURIComponent(food.Food_id);
+
+        return `
+            <tr>
+                <td>
+                    ${image
+                        ? `<img class="dish-photo"
+                             src="${image}"
+                             alt="${escapeHTML(name)}"
+                             onerror="this.style.display='none'">`
+                        : "—"}
+                </td>
+                <td>${escapeHTML(food.Food_id)}</td>
+                <td><strong>${escapeHTML(name)}</strong></td>
+                <td>${escapeHTML(food.Category)}</td>
+                <td>₹${escapeHTML(food.Price)}</td>
+                <td>${escapeHTML(food.Description)}</td>
+                <td>
+                    <span class="status ${available ? "yes" : "no"}">
+                        ${available ? "Available" : "Unavailable"}
+                    </span>
+                </td>
+                <td>
+                    <a class="action-link"
+                       href="listOne.html?id=${id}">View</a>
+                    <a class="action-link"
+                       href="update.html?id=${id}">Edit</a>
+                    <a class="action-link delete-link"
+                       href="delete.html?id=${id}">Delete</a>
+                </td>
+            </tr>`;
+    }).join("");
+}
+
+async function loadFoods() {
+    try {
+        errorMessage.textContent = "";
+        const response = await fetch("/foods");
+
+        if (!response.ok) {
+            throw new Error("Server returned an error.");
+        }
+
+        const data = await response.json();
+
+        if (!Array.isArray(data)) {
+            throw new Error("The server did not return a food list.");
+        }
+
+        foods = data;
+        renderFoods();
+    } catch (error) {
+        foodCount.textContent = "Unable to load food items.";
+        foodTable.innerHTML = `
+            <tr>
+                <td colspan="8" class="table-message">
+                    Could not load data. Check the server and database.
+                </td>
+            </tr>`;
+        errorMessage.textContent = error.message;
+        console.error(error);
+    }
+}
+
+searchFood.addEventListener("input", renderFoods);
+categoryFilter.addEventListener("change", renderFoods);
+availabilityFilter.addEventListener("change", renderFoods);
+
+loadFoods();
+</script>
+
+</body>
+</html>
